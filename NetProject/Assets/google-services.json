@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "929351112371",
+    "project_id": "netproject-91fd4",
+    "storage_bucket": "netproject-91fd4.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:929351112371:android:9d0b226bbcbeeafc2202c6",
+        "android_client_info": {
+          "package_name": "com.DefaultCompany.NetProject"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCwYmt7OCjJa5eZLIrFkK8hrGESYUGhRwA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
