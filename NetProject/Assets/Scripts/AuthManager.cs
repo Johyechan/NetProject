@@ -27,6 +27,12 @@ public class AuthManager : Singleton<AuthManager>
     public TMP_InputField passwordCheckRegisterField;
     public TMP_Text warningRegisterText;
 
+    [Header("ChangePassword")]
+    public TMP_InputField currentEmailRegisterField;
+    public TMP_InputField currentPasswordRegisterField;
+    public TMP_InputField changePasswordCheckRegisterField;
+    public TMP_Text warningPasswordText;
+
     public TMP_Text userNameText;
     private string strWeather;
     private string strLastLogin;
@@ -134,6 +140,35 @@ public class AuthManager : Singleton<AuthManager>
         StartCoroutine(Register(emailRegisterField.text, passwordRegisterField.text, userNameRegisterField.text));
     }
 
+    private IEnumerator ChangePassword(string email, string password, string newPassword)
+    {
+        var user = auth.SignInWithEmailAndPasswordAsync(email, password).ContinueWith(task => {
+            if (task.IsCompleted && !task.IsCanceled && !task.IsFaulted)
+            {
+                FirebaseUser user = task.Result.User;
+                
+                var passwordCheck = user.UpdatePasswordAsync(newPassword);
+                if (passwordCheck.Exception != null)
+                {
+                    Debug.LogError($"Password update failed: {passwordCheck.Exception.Message}");
+                    // 오류 처리
+                }
+            }
+            else
+            {
+                Debug.LogError($"Sign-in failed: {task.Exception.Message}");
+                // 로그인 실패 시 처리
+            }
+        });
+        yield return new WaitUntil(() => user.IsCompleted);
+        UIManager.Instance.LoginPanel();
+        Debug.Log("User signed in successfully");
+    }
+
+    public void ChangePasswordButton()
+    {
+        StartCoroutine(ChangePassword(currentEmailRegisterField.text, currentPasswordRegisterField.text, changePasswordCheckRegisterField.text));
+    }
     private IEnumerator Login(string email, string password)
     {
         var task = auth.SignInWithEmailAndPasswordAsync(email, password);
@@ -278,7 +313,7 @@ public class AuthManager : Singleton<AuthManager>
                 strWeather = snapshot.Value.ToString();
             }
         }
-        UIManager.Instance.StartGame();
+        //UIManager.Instance.StartGame();
     }
 
     public string GetWeather()
