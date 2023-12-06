@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "929351112371",
-    "project_id": "netproject-91fd4",
-    "storage_bucket": "netproject-91fd4.appspot.com"
+    "project_number": "56655867963",
+    "project_id": "network24-763aa",
+    "storage_bucket": "network24-763aa.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:929351112371:android:9d0b226bbcbeeafc2202c6",
+        "mobilesdk_app_id": "1:56655867963:android:398dc997f69e400ec82c1e",
         "android_client_info": {
-          "package_name": "com.DefaultCompany.NetProject"
+          "package_name": "com.DefaultCompany.ChatClient"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCwYmt7OCjJa5eZLIrFkK8hrGESYUGhRwA"
+          "current_key": "AIzaSyB6AMmpC3MEw1q-5bC379hYP0LbrmwhXSk"
         }
       ],
       "services": {
