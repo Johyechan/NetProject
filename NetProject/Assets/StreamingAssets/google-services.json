@@ -1,22 +1,22 @@
 {
   "project_info": {
-    "project_number": "56655867963",
-    "firebase_url": "https://network24-763aa-default-rtdb.europe-west1.firebasedatabase.app",
-    "project_id": "network24-763aa",
-    "storage_bucket": "network24-763aa.appspot.com"
+    "project_number": "929351112371",
+    "firebase_url": "https://netproject-91fd4-default-rtdb.firebaseio.com",
+    "project_id": "netproject-91fd4",
+    "storage_bucket": "netproject-91fd4.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:56655867963:android:398dc997f69e400ec82c1e",
+        "mobilesdk_app_id": "1:929351112371:android:9d0b226bbcbeeafc2202c6",
         "android_client_info": {
-          "package_name": "com.DefaultCompany.ChatClient"
+          "package_name": "com.DefaultCompany.NetProject"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyB6AMmpC3MEw1q-5bC379hYP0LbrmwhXSk"
+          "current_key": "AIzaSyCwYmt7OCjJa5eZLIrFkK8hrGESYUGhRwA"
         }
       ],
       "services": {

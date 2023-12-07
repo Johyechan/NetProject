@@ -5,6 +5,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 
@@ -33,11 +34,13 @@ public class AuthManager : Singleton<AuthManager>
     public TMP_InputField changePasswordCheckRegisterField;
     public TMP_Text warningPasswordText;
 
+    public TMP_Text loginCountText;
     public TMP_Text userNameText;
     private string strWeather;
     private string strLastLogin;
+    private int loginCount;
 
-    private void Awake()
+    private new void Awake()
     {
         Firebase.FirebaseApp.CheckAndFixDependenciesAsync().ContinueWith(task =>
         {
@@ -169,6 +172,7 @@ public class AuthManager : Singleton<AuthManager>
     {
         StartCoroutine(ChangePassword(currentEmailRegisterField.text, currentPasswordRegisterField.text, changePasswordCheckRegisterField.text));
     }
+
     private IEnumerator Login(string email, string password)
     {
         var task = auth.SignInWithEmailAndPasswordAsync(email, password);
@@ -210,8 +214,9 @@ public class AuthManager : Singleton<AuthManager>
             //값 변경될 때 마다 이벤트 호출
             DBref.Child("users").Child(User.UserId).Child("LastLogin").ValueChanged += LoadLastLogin;
 
-            UIManager.Instance.CloseLogin();
             StartCoroutine(LoadUserName());
+            StartCoroutine(GetLoginCount());
+            UIManager.Instance.CloseLogin();
             StartCoroutine(SaveLoginData());
             StartCoroutine(LoadWeather());
         }
@@ -255,15 +260,17 @@ public class AuthManager : Singleton<AuthManager>
                     if (task.IsCompleted)
                     {
                         Debug.Log($"Reward LoginDate Updated:{date}");
+                        Debug.Log($"{loginCount}보상 받음");
                     }
                 });
-            Debug.Log("보상 받음");
+            
         }
 
     }
 
     public void LoginButton()
     {
+        loginCount++;
         StartCoroutine(Login(emailLoginField.text, passwordLoginField.text));
     }
 
@@ -326,6 +333,8 @@ public class AuthManager : Singleton<AuthManager>
     {
         var DBTask = DBref.Child("users").Child(User.UserId).Child("RewardLogin")
             .SetValueAsync("00000000000000");
+        DBTask = DBref.Child("users").Child(User.UserId).Child("CountRewardLogin")
+            .SetValueAsync(0);
         yield return new WaitUntil(() => DBTask.IsCompleted);
         if (DBTask.Exception != null)
         {
@@ -341,10 +350,37 @@ public class AuthManager : Singleton<AuthManager>
     {
         return DateTime.Now.ToString("yyyyMMddHHmmss");
     }
+
+    private IEnumerator GetLoginCount()
+    {
+        var DBTaskGG = DBref.Child("users").Child(User.UserId).Child("CountRewardLogin").GetValueAsync();
+        yield return new WaitUntil(() => DBTaskGG.IsCompleted);
+        loginCount = int.Parse(DBTaskGG.Result.Value.ToString());
+
+        loginCount++;
+        var DBTaskS = DBref.Child("users").Child(User.UserId).Child("CountRewardLogin").SetValueAsync(loginCount);
+        yield return new WaitUntil(() => DBTaskS.IsCompleted);
+
+        var DBTaskG = DBref.Child("users").Child(User.UserId).Child("CountRewardLogin").GetValueAsync();
+        yield return new WaitUntil(() => DBTaskG.IsCompleted);
+        if (DBTaskG.Exception != null)
+        {
+            Debug.LogWarning($"Load Task failed with {DBTaskG.Exception}");
+        }
+        else
+        {
+            DataSnapshot snapshot = DBTaskG.Result;
+            Debug.Log("Load Completed");
+            loginCountText.text = $"{loginCount}th Days Login!";
+        }
+    }
+
     private IEnumerator SaveLoginData()
     {
         string currentDateTime = GetNow();
+
         var DBTask = DBref.Child("users").Child(User.UserId).Child("LastLogin").SetValueAsync(currentDateTime);
+
         yield return new WaitUntil(() => DBTask.IsCompleted);
 
         if (DBTask.Exception != null)
