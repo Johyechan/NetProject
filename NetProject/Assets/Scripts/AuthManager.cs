@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class AuthManager : Singleton<AuthManager>
 {
@@ -34,11 +35,20 @@ public class AuthManager : Singleton<AuthManager>
     public TMP_InputField changePasswordCheckRegisterField;
     public TMP_Text warningPasswordText;
 
+    [Header("ShowFriends")]
+    public Button buttonprefab;
+    public Transform buttonParent;
+    public TMP_Text friends;
+
     public TMP_Text loginCountText;
     public TMP_Text userNameText;
     private string strWeather;
     private string strLastLogin;
     private int loginCount;
+    private bool newfriends = false;
+
+    private List<string> userIds = new List<string>();
+    private List<string> friendsList = new List<string>();
 
     private new void Awake()
     {
@@ -61,6 +71,11 @@ public class AuthManager : Singleton<AuthManager>
                 // Firebase Unity SDK is not safe to use here.
             }
         });
+    }
+
+    private void Update()
+    {
+        // 친구 누구 있는지 보여주기
     }
 
     private IEnumerator Register(string email, string password, string userName)
@@ -143,6 +158,93 @@ public class AuthManager : Singleton<AuthManager>
         StartCoroutine(Register(emailRegisterField.text, passwordRegisterField.text, userNameRegisterField.text));
     }
 
+    private void PlusFriend(string friendName)
+    {
+        // 현재 Friends 목록에서 중복 확인
+        bool isFriendAlreadyExist = false;
+        DBref.Child("users").Child(User.UserId).Child("Friends").GetValueAsync().ContinueWith(task =>
+        {
+            var snapshot = task.Result;
+            foreach (var friendSnapshot in snapshot.Children)
+            {
+                string existingFriendName = friendSnapshot.GetValue(true).ToString();
+                if (existingFriendName == friendName)
+                {
+                    // 이미 존재하는 친구이므로 중복 추가 방지
+                    isFriendAlreadyExist = true;
+                    break;
+                }
+            }
+
+            if (!isFriendAlreadyExist)
+            {
+                string newFriendKey = DBref.Child("users").Child(User.UserId).Child("Friends").Push().Key;
+                DBref.Child("users").Child(User.UserId).Child("Friends").Child(newFriendKey).SetValueAsync(friendName)
+                    .ContinueWith(task =>
+                    {
+                        if (task.IsCompleted)
+                        {
+                            Debug.Log($"{friendName} 친구 추가 됨");
+                            friendsList.Add(friendName);
+                            newfriends = true;
+                        }
+                    });
+            }
+            else
+            {
+                Debug.Log($"{friendName} 이미 친구 목록에 존재합니다.");
+            }
+        });
+        
+    }
+
+    private IEnumerator Friends()
+    {
+        var DB = DBref.Child("users");
+        int i = 0;
+        var dbtask = DB.GetValueAsync().ContinueWith(task => {
+            if (task.IsFaulted)
+            {
+                Debug.LogError($"Error fetching user IDs: {task.Exception}");
+            }
+            else if (task.IsCompleted)
+            {
+                var snapshot = task.Result;
+
+                // 모든 users의 하위 노드에 대해 반복
+                foreach (var userSnapshot in snapshot.Children)
+                {
+                    // 각 user의 UserID 출력
+                    if (userSnapshot.Child("UserName").Value.ToString() != userNameText.text)
+                    {
+                        string userID = userSnapshot.Child("UserName").Value.ToString();
+                        Debug.Log($"{userNameText.text}");
+                        userIds.Add(userID);
+
+                    }
+                }
+            }
+        });
+        yield return new WaitUntil(() => dbtask.IsCompleted);
+        foreach (string userid in userIds)
+        {
+            Button friendButton = Instantiate(buttonprefab);
+            friendButton.transform.SetParent(buttonParent);
+            friendButton.transform.localPosition = new Vector3(0, 1 * -(i * 100), 0);
+            friendButton.GetComponentInChildren<TMP_Text>().text = userid;
+            friendButton.onClick.AddListener(() => PlusFriend(userid));
+            i++;
+        }
+    }
+
+    public void OnShowFriends()
+    {
+        UIManager.Instance.ShowFriends();
+        userIds.Clear();
+        if(UIManager.Instance.show)
+            StartCoroutine(Friends());
+    }
+
     private IEnumerator ChangePassword(string email, string password, string newPassword)
     {
         var user = auth.SignInWithEmailAndPasswordAsync(email, password).ContinueWith(task => {
@@ -171,6 +273,25 @@ public class AuthManager : Singleton<AuthManager>
     public void ChangePasswordButton()
     {
         StartCoroutine(ChangePassword(currentEmailRegisterField.text, currentPasswordRegisterField.text, changePasswordCheckRegisterField.text));
+    }
+
+    private IEnumerator TextFriends()
+    {
+        var task = DBref.Child("users").Child(User.UserId).Child("Friends").GetValueAsync()
+                .ContinueWith(task =>
+                {
+                    if (task.IsCompleted)
+                    {
+                        var snapshot = task.Result;
+
+                        foreach (var userSnapshot in snapshot.Children)
+                        {
+                            Debug.Log(userSnapshot.GetValue(true).ToString());
+                            friendsList.Add(userSnapshot.GetValue(true).ToString());
+                        }
+                    }
+                });
+        yield return new WaitUntil(() => task.IsCompleted);
     }
 
     private IEnumerator Login(string email, string password)
@@ -216,6 +337,7 @@ public class AuthManager : Singleton<AuthManager>
 
             StartCoroutine(LoadUserName());
             StartCoroutine(GetLoginCount());
+            StartCoroutine(TextFriends());
             UIManager.Instance.CloseLogin();
             StartCoroutine(SaveLoginData());
             StartCoroutine(LoadWeather());
@@ -299,7 +421,7 @@ public class AuthManager : Singleton<AuthManager>
         {
             DataSnapshot snapshot = DBTask.Result;
             Debug.Log("Load Completed");
-            userNameText.text = $"Username: {snapshot.Value}";
+            userNameText.text = $"{snapshot.Value}";
         }
     }
 
@@ -335,6 +457,8 @@ public class AuthManager : Singleton<AuthManager>
             .SetValueAsync("00000000000000");
         DBTask = DBref.Child("users").Child(User.UserId).Child("CountRewardLogin")
             .SetValueAsync(0);
+        DBref.Child("users").Child(User.UserId).Child("Friends")
+            .SetValueAsync(null);
         yield return new WaitUntil(() => DBTask.IsCompleted);
         if (DBTask.Exception != null)
         {
