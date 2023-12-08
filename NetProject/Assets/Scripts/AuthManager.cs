@@ -1,6 +1,7 @@
 using Firebase;
 using Firebase.Auth;
 using Firebase.Database;
+using Firebase.Extensions;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -40,10 +41,12 @@ public class AuthManager : Singleton<AuthManager>
     public Transform buttonParent;
     public TMP_Text friends;
 
+    public Material enemyMaterial;
     public TMP_Text loginCountText;
     public TMP_Text userNameText;
     private string strWeather;
     private string strLastLogin;
+    private string enemycolor;
     private int loginCount;
     private bool newfriends = false;
 
@@ -76,6 +79,15 @@ public class AuthManager : Singleton<AuthManager>
     private void Update()
     {
         // 친구 누구 있는지 보여주기
+        if(newfriends)
+        {
+            friends.text += friendsList[friendsList.Count - 1] + '\n';
+            newfriends = false;
+        }
+        if(GameManager.Instance.powerUp || UIManager.Instance.changeColor)
+        {
+            StartCoroutine(ChangeColor());
+        }
     }
 
     private IEnumerator Register(string email, string password, string userName)
@@ -180,7 +192,7 @@ public class AuthManager : Singleton<AuthManager>
             {
                 string newFriendKey = DBref.Child("users").Child(User.UserId).Child("Friends").Push().Key;
                 DBref.Child("users").Child(User.UserId).Child("Friends").Child(newFriendKey).SetValueAsync(friendName)
-                    .ContinueWith(task =>
+                    .ContinueWithOnMainThread(task =>
                     {
                         if (task.IsCompleted)
                         {
@@ -195,7 +207,6 @@ public class AuthManager : Singleton<AuthManager>
                 Debug.Log($"{friendName} 이미 친구 목록에 존재합니다.");
             }
         });
-        
     }
 
     private IEnumerator Friends()
@@ -226,6 +237,17 @@ public class AuthManager : Singleton<AuthManager>
             }
         });
         yield return new WaitUntil(() => dbtask.IsCompleted);
+        foreach (Transform child in buttonParent)
+        {
+            // 자식 GameObject가 Button 컴포넌트를 가지고 있는지 확인
+            Button buttonComponent = child.GetComponent<Button>();
+
+            // Button 컴포넌트가 있다면 해당 자식 GameObject를 제거
+            if (buttonComponent != null)
+            {
+                Destroy(child.gameObject);
+            }
+        }
         foreach (string userid in userIds)
         {
             Button friendButton = Instantiate(buttonprefab);
@@ -292,6 +314,9 @@ public class AuthManager : Singleton<AuthManager>
                     }
                 });
         yield return new WaitUntil(() => task.IsCompleted);
+
+        foreach (var names in friendsList)
+            friends.text += names + '\n';
     }
 
     private IEnumerator Login(string email, string password)
@@ -339,6 +364,7 @@ public class AuthManager : Singleton<AuthManager>
             StartCoroutine(GetLoginCount());
             StartCoroutine(TextFriends());
             UIManager.Instance.CloseLogin();
+            StartCoroutine(LoadColor());
             StartCoroutine(SaveLoginData());
             StartCoroutine(LoadWeather());
         }
@@ -515,6 +541,83 @@ public class AuthManager : Singleton<AuthManager>
         else
         {
             Debug.Log("Login Date update: " + currentDateTime);
+        }
+    }
+
+    private IEnumerator ChangeColor()
+    {
+        int rand = UnityEngine.Random.Range(1, 3);
+        switch (rand)
+        {
+            case 1:
+                enemycolor = "red";
+                break;
+            case 2:
+                enemycolor = "blue";
+                break;
+            default:
+                enemycolor = "red";
+                break;
+        }
+        var DBTaskSet = DBref.Child("Color").SetValueAsync(enemycolor);
+        yield return new WaitUntil(() => DBTaskSet.IsCompleted);
+        var DBTask = DBref.Child("Color").GetValueAsync();
+        yield return new WaitUntil(() => DBTask.IsCompleted);
+        if (DBTask.Exception != null)
+        {
+            Debug.LogWarning($"Failed to Load task with{DBTask.Exception}");
+        }
+        else
+        {
+            DataSnapshot snapshot = DBTask.Result;
+            switch (snapshot.Value.ToString())
+            {
+                case "red":
+                    enemyMaterial.color = Color.red;
+                    break;
+                case "blue":
+                    enemyMaterial.color = Color.blue;
+                    break;
+            }
+        }
+        GameManager.Instance.powerUp = false;
+        UIManager.Instance.changeColor = false;
+    }
+    private IEnumerator LoadColor()
+    {
+        int rand = UnityEngine.Random.Range(1, 3);
+        switch (rand)
+        {
+            case 1:
+                enemycolor = "red";
+                break;
+            case 2:
+                enemycolor = "blue";
+                break;
+            default:
+                enemycolor = "red";
+                break;
+        }
+        var DBTaskSet = DBref.Child("Color").SetValueAsync(enemycolor);
+        yield return new WaitUntil(() => DBTaskSet.IsCompleted);
+        var DBTask = DBref.Child("Color").GetValueAsync();
+        yield return new WaitUntil(() => DBTask.IsCompleted);
+        if(DBTask.Exception != null)
+        {
+            Debug.LogWarning($"Failed to Load task with{DBTask.Exception}");
+        }
+        else
+        {
+            DataSnapshot snapshot = DBTask.Result;
+            switch (snapshot.Value.ToString())
+            {
+                case "red":
+                    enemyMaterial.color = Color.red;
+                    break;
+                case "blue":
+                    enemyMaterial.color = Color.blue;
+                    break;
+            }
         }
     }
 
