@@ -44,7 +44,6 @@ public class AuthManager : Singleton<AuthManager>
     public Material enemyMaterial;
     public TMP_Text loginCountText;
     public TMP_Text userNameText;
-    private string strWeather;
     private string strLastLogin;
     private string enemycolor;
     private int loginCount;
@@ -229,7 +228,6 @@ public class AuthManager : Singleton<AuthManager>
                     if (userSnapshot.Child("UserName").Value.ToString() != userNameText.text)
                     {
                         string userID = userSnapshot.Child("UserName").Value.ToString();
-                        Debug.Log($"{userNameText.text}");
                         userIds.Add(userID);
 
                     }
@@ -360,13 +358,12 @@ public class AuthManager : Singleton<AuthManager>
             //값 변경될 때 마다 이벤트 호출
             DBref.Child("users").Child(User.UserId).Child("LastLogin").ValueChanged += LoadLastLogin;
 
+            StartCoroutine(SaveLoginData());
             StartCoroutine(LoadUserName());
             StartCoroutine(GetLoginCount());
             StartCoroutine(TextFriends());
             UIManager.Instance.CloseLogin();
             StartCoroutine(LoadColor());
-            StartCoroutine(SaveLoginData());
-            StartCoroutine(LoadWeather());
         }
     }
 
@@ -418,7 +415,6 @@ public class AuthManager : Singleton<AuthManager>
 
     public void LoginButton()
     {
-        loginCount++;
         StartCoroutine(Login(emailLoginField.text, passwordLoginField.text));
     }
 
@@ -451,31 +447,6 @@ public class AuthManager : Singleton<AuthManager>
         }
     }
 
-    public IEnumerator LoadWeather()
-    {
-        var DBTask = DBref.Child("Weather").GetValueAsync();
-        yield return new WaitUntil(() => DBTask.IsCompleted);
-        if (DBTask.Exception != null)
-        {
-            Debug.LogWarning($"Load Task failed with {DBTask.Exception}");
-        }
-        else
-        {
-            DataSnapshot snapshot = DBTask.Result;
-            if(snapshot!=null && snapshot.Value != null)
-            {
-                Debug.Log("Load Completed");
-                strWeather = snapshot.Value.ToString();
-            }
-        }
-        //UIManager.Instance.StartGame();
-    }
-
-    public string GetWeather()
-    {
-        return strWeather;
-    }
-
     //최초 회원가입 사용자 보상 초기화
     private IEnumerator SaveRewardData()
     {
@@ -505,7 +476,7 @@ public class AuthManager : Singleton<AuthManager>
     {
         var DBTaskGG = DBref.Child("users").Child(User.UserId).Child("CountRewardLogin").GetValueAsync();
         yield return new WaitUntil(() => DBTaskGG.IsCompleted);
-        loginCount = int.Parse(DBTaskGG.Result.Value.ToString());
+        loginCount = int.Parse(DBTaskGG.Result.Value.ToString()); // 여기서 널이 남
 
         loginCount++;
         var DBTaskS = DBref.Child("users").Child(User.UserId).Child("CountRewardLogin").SetValueAsync(loginCount);
