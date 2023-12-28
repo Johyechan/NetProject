@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class UIManager : Singleton<UIManager>
 {
@@ -14,6 +15,9 @@ public class UIManager : Singleton<UIManager>
     public GameObject endUI;
     public GameObject startButton;
 
+    public TMP_Text bestStage;
+    
+
     public GameObject enemy;
 
     public bool show = false;
@@ -22,12 +26,11 @@ public class UIManager : Singleton<UIManager>
 
     public void GamePanel()
     {
-        Debug.Log("ddd");
         game = true;
         changeColor = true;
         GameManager.Instance.Hp.value = 1;
         GameManager.Instance.timeline.value = 1;
-        GameManager.Instance.level = 10;
+        GameManager.Instance.level = 1;
         startUI.SetActive(false);
         showFriendsView.SetActive(false);
         gameUI.SetActive(true);
@@ -45,6 +48,7 @@ public class UIManager : Singleton<UIManager>
     {
         endUI.SetActive(false);
         startUI.SetActive(true);
+        bestStage.text = "Best Stage : " + GameManager.Instance.bestStage;
     }
 
     public void GameEnd()

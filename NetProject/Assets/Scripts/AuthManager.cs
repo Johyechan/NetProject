@@ -44,6 +44,7 @@ public class AuthManager : Singleton<AuthManager>
     public Material enemyMaterial;
     public TMP_Text loginCountText;
     public TMP_Text userNameText;
+
     private string strLastLogin;
     private string enemycolor;
     private int loginCount;
@@ -154,6 +155,7 @@ public class AuthManager : Singleton<AuthManager>
                             warningRegisterText.text = "";
                             StartCoroutine(SaveUserName());
                             StartCoroutine(SaveRewardData());
+                            StartCoroutine(FirstInformation());
                         }
                     }
                 }
@@ -162,6 +164,25 @@ public class AuthManager : Singleton<AuthManager>
 
         }
 
+    }
+
+    private IEnumerator FirstInformation()
+    {
+        var DBTask = DBref.Child("users").Child(User.UserId).Child("AttackPower").SetValueAsync(0.1f);
+        yield return new WaitUntil(() => DBTask.IsCompleted);
+        if (DBTask.Exception != null)
+        {
+            Debug.LogWarning($"Save Task failed with {DBTask.Exception}");
+        }
+        else Debug.Log("Save Completed");
+
+        var DBTask2 = DBref.Child("users").Child(User.UserId).Child("BestStage").SetValueAsync(1);
+        yield return new WaitUntil(() => DBTask2.IsCompleted);
+        if (DBTask.Exception != null)
+        {
+            Debug.LogWarning($"Save Task failed with {DBTask2.Exception}");
+        }
+        else Debug.Log("Save Completed");
     }
 
     public void OnRegister()
@@ -317,6 +338,43 @@ public class AuthManager : Singleton<AuthManager>
             friends.text += names + '\n';
     }
 
+    private IEnumerator GetAttackPower()
+    {
+        // 들고 오기 이상함 + 적 그리기 + 배경음
+        var DBTask = DBref.Child("users").Child(User.UserId).Child("AttackPower").GetValueAsync();
+        yield return new WaitUntil(() => DBTask.IsCompleted);
+        GameManager.Instance.attackPower = float.Parse(DBTask.Result.Value.ToString());
+    }
+
+    private IEnumerator GetBestStage()
+    {
+        var DBTask = DBref.Child("users").Child(User.UserId).Child("BestStage").GetValueAsync();
+        yield return new WaitUntil(() => DBTask.IsCompleted);
+        GameManager.Instance.bestStage = int.Parse(DBTask.Result.Value.ToString());
+    }
+
+    public IEnumerator SaveAttackPower()
+    {
+        var DBTask = DBref.Child("users").Child(User.UserId).Child("AttackPower").SetValueAsync(GameManager.Instance.attackPower);
+        yield return new WaitUntil(() => DBTask.IsCompleted);
+        if (DBTask.Exception != null)
+        {
+            Debug.LogWarning($"Save Task failed with {DBTask.Exception}");
+        }
+        else Debug.Log("Save Completed");
+    }
+
+    public IEnumerator SaveBestStage()
+    {
+        var DBTask = DBref.Child("users").Child(User.UserId).Child("BestStage").SetValueAsync(GameManager.Instance.level);
+        yield return new WaitUntil(() => DBTask.IsCompleted);
+        if (DBTask.Exception != null)
+        {
+            Debug.LogWarning($"Save Task failed with {DBTask.Exception}");
+        }
+        else Debug.Log("Save Completed");
+    }
+
     private IEnumerator Login(string email, string password)
     {
         var task = auth.SignInWithEmailAndPasswordAsync(email, password);
@@ -359,6 +417,8 @@ public class AuthManager : Singleton<AuthManager>
             DBref.Child("users").Child(User.UserId).Child("LastLogin").ValueChanged += LoadLastLogin;
 
             StartCoroutine(SaveLoginData());
+            StartCoroutine(GetAttackPower());
+            StartCoroutine(GetBestStage());
             StartCoroutine(LoadUserName());
             StartCoroutine(GetLoginCount());
             StartCoroutine(TextFriends());
@@ -395,8 +455,7 @@ public class AuthManager : Singleton<AuthManager>
     public void OnRewardButton()
     {
         string date = GetNow();
-        // date2 = DateTime.Now.ToString("yyyyMMddHHmmss");
-        if (strLastLogin.Substring(0, 12).CompareTo(date.Substring(0, 12)) < 0)
+        if (strLastLogin.Substring(0, 7).CompareTo(date.Substring(0, 7)) < 0)
         {
             strLastLogin = date;
             DBref.Child("users").Child(User.UserId).Child("RewardLogin").SetValueAsync(date)
@@ -404,6 +463,7 @@ public class AuthManager : Singleton<AuthManager>
                 {
                     if (task.IsCompleted)
                     {
+                        GameManager.Instance.attackPower += 0.01f;
                         Debug.Log($"Reward LoginDate Updated:{date}");
                         Debug.Log($"{loginCount}보상 받음");
                     }
@@ -476,7 +536,7 @@ public class AuthManager : Singleton<AuthManager>
     {
         var DBTaskGG = DBref.Child("users").Child(User.UserId).Child("CountRewardLogin").GetValueAsync();
         yield return new WaitUntil(() => DBTaskGG.IsCompleted);
-        loginCount = int.Parse(DBTaskGG.Result.Value.ToString()); // 여기서 널이 남
+        loginCount = int.Parse(DBTaskGG.Result.Value.ToString());
 
         loginCount++;
         var DBTaskS = DBref.Child("users").Child(User.UserId).Child("CountRewardLogin").SetValueAsync(loginCount);
